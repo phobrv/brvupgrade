@@ -60,7 +60,7 @@ class UpgradeController extends Controller {
 		);
 
 		try {
-			return view('phobrv::upgrade.replace')->with('data', $data);
+			return view('phobrv::upgrade.replaceDomain')->with('data', $data);
 		} catch (Exception $e) {
 			return back()->with('alert_danger', $e->getMessage());
 		}
