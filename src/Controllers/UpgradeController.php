@@ -106,7 +106,34 @@ class UpgradeController extends Controller {
 		}
 		return redirect()->route('upgrade.index');
 	}
-
+	public function upgradeUser() {
+		$users = DB::table('old_users')->get();
+		foreach ($users as $u) {
+			$tmp = [
+				'id' => $u->id,
+				'name' => $u->full_name,
+				'password' => $u->password,
+				'email' => $u->email,
+				'avatar' => "public/img/" . $u->avatar,
+			];
+			if (empty($this->userRepository->where('email', $u->email)->first())) {
+				$this->userRepository->updateOrcreate($tmp);
+			}
+		}
+	}
+	public function updatePostGroup() {
+		$post_groups = DB::table('old_post_group')->get();
+		foreach ($post_groups as $pg) {
+			$term = [
+				'id' => $pg->id,
+				'name' => $pg->name,
+				'slug' => $pg->alias,
+				'description' => $pg->description,
+				'taxonomy' => 'category',
+			];
+			DB::table('terms')->insert($term);
+		}
+	}
 	public function insertMenu() {
 		$term = [
 			'name' => 'Main menu',
@@ -125,36 +152,63 @@ class UpgradeController extends Controller {
 			}
 		}
 	}
-	public function updatePostGroup() {
-		$post_groups = DB::table('old_post_group')->get();
-		foreach ($post_groups as $pg) {
-			$term = [
-				'id' => $pg->id,
-				'name' => $pg->name,
-				'slug' => $pg->alias,
-				'description' => $pg->description,
-				'taxonomy' => 'category',
-			];
-			DB::table('terms')->insert($term);
-		}
-	}
+	public function updatePost() {
+		$posts = DB::table('old_posts')->get();
+		foreach ($posts as $p) {
+			$ck = $this->postRepository->findWhere(['slug' => $p->alias])->first();
 
-	public function upgradeUser() {
-		$users = DB::table('old_users')->get();
-		foreach ($users as $u) {
-			$tmp = [
-				'id' => $u->id,
-				'name' => $u->full_name,
-				'password' => $u->password,
-				'email' => $u->email,
-				'avatar' => "public/img/" . $u->avatar,
-			];
-			if (empty($this->userRepository->where('email', $u->email)->first())) {
-				$this->userRepository->updateOrcreate($tmp);
+			if (!$ck) {
+				$ckauthor = $this->userRepository->findWhere(['id' => $p->author_id])->first();
+				if (!$ckauthor) {
+					$p->author_id = 1;
+				}
+
+				$tmp = [
+					'user_id' => $p->author_id,
+					'title' => $p->title,
+					'slug' => $p->alias,
+					'content' => $p->content,
+					'thumb' => $p->image_thumb,
+					'excerpt' => $p->summary,
+					'type' => 'post',
+				];
+				$post = $this->postRepository->create($tmp);
+				if ($p->group_id) {
+					$post->terms()->sync($p->group_id);
+				}
+
+				if (!empty($p->doctor)) {
+					$meta['doctor'] = 0;
+					$doctor = DB::table('old_author')->find($p->doctor);
+					if ($doctor) {
+						$dp = $this->postRepository->findWhere(['slug' => $doctor->alias])->first();
+						if ($dp) {
+							$meta['doctor'] = $dp->id;
+						}
+
+					}
+				}
+
+				if (!empty($p->pharmacist)) {
+					$meta['pharmacist'] = 0;
+					$doctor = DB::table('old_author')->find($p->pharmacist);
+					if ($doctor) {
+						$dp = $this->postRepository->findWhere(['slug' => $doctor->alias])->first();
+						if ($dp) {
+							$meta['pharmacist'] = $dp->id;
+						}
+
+					}
+
+				}
+
+				$meta['meta_title'] = ($p->meta_title) ? $p->meta_title : $p->title;
+				$meta['meta_description'] = $p->meta_description;
+				$meta['meta_keywords'] = $p->meta_keywords;
+				$this->postRepository->insertMeta($post, $meta);
 			}
 		}
 	}
-
 	public function replaceDomain($data) {
 		$posts = $this->postRepository->all();
 		foreach ($posts as $p) {
@@ -366,68 +420,6 @@ class UpgradeController extends Controller {
 			$meta['answer'] = $p->answer;
 			$meta['name'] = $p->name;
 			$this->postRepository->insertMeta($ques, $meta);
-		}
-	}
-	public function updatePost() {
-		$posts = DB::table('old_posts')->get();
-		foreach ($posts as $p) {
-			$ck = $this->postRepository->findWhere(['slug' => $p->alias])->first();
-
-			if (!$ck) {
-				$ckauthor = $this->userRepository->findWhere(['id' => $p->author_id])->first();
-				if (!$ckauthor) {
-					$p->author_id = 1;
-				}
-
-				$tmp = [
-					'user_id' => $p->author_id,
-					'title' => $p->title,
-					'slug' => $p->alias,
-					'content' => $p->content,
-					'thumb' => "public/img/" . $p->image_thumb,
-					'excerpt' => $p->summary,
-					'type' => 'post',
-				];
-				$post = $this->postRepository->create($tmp);
-				if ($p->group_id) {
-					$post->terms()->sync($p->group_id);
-				}
-
-				$meta['doctor'] = 0;
-				if ($p->doctor != 0) {
-					$doctor = DB::table('old_author')->find($p->doctor);
-					if ($doctor) {
-						$dp = $this->postRepository->findWhere(['slug' => $doctor->alias])->first();
-						if ($dp) {
-							$meta['doctor'] = $dp->id;
-						}
-
-					}
-				}
-				$meta['pharmacist'] = 0;
-				if ($p->pharmacist != 0) {
-					$doctor = DB::table('old_author')->find($p->pharmacist);
-					if ($doctor) {
-						$dp = $this->postRepository->findWhere(['slug' => $doctor->alias])->first();
-						if ($dp) {
-							$meta['pharmacist'] = $dp->id;
-						}
-
-					}
-
-				}
-
-				$meta['meta_title'] = ($p->meta_title) ? $p->meta_title : $p->title;
-				$meta['meta_description'] = $p->meta_description;
-				$meta['meta_keywords'] = $p->meta_keywords;
-				$this->postRepository->insertMeta($post, $meta);
-			}
-		}
-
-		$posts = $this->postRepository->findWhere(['type' => 'post']);
-		foreach ($posts as $p) {
-			$content = str_replace('../../public/filemanager/userfiles/', '../../filemanager/userfiles/', $p->content);
-			$this->postRepository->update(['content' => $content], $p->id);
 		}
 	}
 
