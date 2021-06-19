@@ -111,7 +111,7 @@ class UpgradeController extends Controller {
 		$term = [
 			'name' => 'Main menu',
 			'slug' => 'main-menu',
-			'taxonomy' => 'menu',
+			'taxonomy' => config('term.taxonomy.menugroup'),
 		];
 		$term = $this->termRepository->updateOrCreate($term);
 		$menus = DB::table('old_menu')->where('parentmenu', '0')->get();
@@ -125,6 +125,20 @@ class UpgradeController extends Controller {
 			}
 		}
 	}
+	public function updatePostGroup() {
+		$post_groups = DB::table('old_post_group')->get();
+		foreach ($post_groups as $pg) {
+			$term = [
+				'id' => $pg->id,
+				'name' => $pg->name,
+				'slug' => $pg->alias,
+				'description' => $pg->description,
+				'taxonomy' => 'category',
+			];
+			DB::table('terms')->insert($term);
+		}
+	}
+
 	public function upgradeUser() {
 		$users = DB::table('old_users')->get();
 		foreach ($users as $u) {
@@ -140,6 +154,7 @@ class UpgradeController extends Controller {
 			}
 		}
 	}
+
 	public function replaceDomain($data) {
 		$posts = $this->postRepository->all();
 		foreach ($posts as $p) {
@@ -413,19 +428,6 @@ class UpgradeController extends Controller {
 		foreach ($posts as $p) {
 			$content = str_replace('../../public/filemanager/userfiles/', '../../filemanager/userfiles/', $p->content);
 			$this->postRepository->update(['content' => $content], $p->id);
-		}
-	}
-	public function updatePostGroup() {
-		$post_groups = DB::table('old_post_group')->get();
-		foreach ($post_groups as $pg) {
-			$term = [
-				'id' => $pg->id,
-				'name' => $pg->name,
-				'slug' => $pg->alias,
-				'description' => $pg->description,
-				'taxonomy' => 'category',
-			];
-			DB::table('terms')->insert($term);
 		}
 	}
 
