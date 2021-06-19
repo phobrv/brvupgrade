@@ -168,7 +168,7 @@ class UpgradeController extends Controller {
 					'title' => $p->title,
 					'slug' => $p->alias,
 					'content' => $p->content,
-					'thumb' => evn('APP_URL') . '/storage/photos/shares/thumbs/' . $p->image_thumb,
+					'thumb' => env('APP_URL') . '/storage/photos/shares/thumbs/' . $p->image_thumb,
 					'excerpt' => $p->summary,
 					'created_at' => $p->created_at,
 					'type' => 'post',
