@@ -12,7 +12,6 @@ use Phobrv\BrvCore\Repositories\PostRepository;
 use Phobrv\BrvCore\Repositories\TermRepository;
 use Phobrv\BrvCore\Repositories\UserRepository;
 use Phobrv\BrvCore\Services\UnitServices;
-use Spatie\Permission\Models\Role;
 
 class UpgradeController extends Controller {
 
@@ -35,7 +34,6 @@ class UpgradeController extends Controller {
 		$this->termRepository = $termRepository;
 		$this->unitService = $unitService;
 	}
-
 	public function index() {
 
 		$data['breadcrumbs'] = $this->unitService->generateBreadcrumbs(
@@ -49,7 +47,6 @@ class UpgradeController extends Controller {
 		} catch (Exception $e) {
 			return back()->with('alert_danger', $e->getMessage());
 		}
-
 	}
 	public function replace() {
 
@@ -64,62 +61,85 @@ class UpgradeController extends Controller {
 		} catch (Exception $e) {
 			return back()->with('alert_danger', $e->getMessage());
 		}
-
 	}
 	public function run(Request $request) {
 		$requestData = $request->all();
-
-		if (in_array("replace_domain", $requestData['choose'])) {
-			$this->replaceDomain($requestData);
+		foreach ($requestData['choose'] as $value) {
+			switch ($value) {
+			case 'user':
+				$this->upgradeUser();
+				break;
+			case 'post_group':
+				$this->updatePostGroup();
+				break;
+			case 'post':
+				$this->updatePost();
+				break;
+			case 'replace_post_content':
+				$this->replacePostContent();
+				break;
+			case 'menu':
+				$this->insertMenu();
+				break;
+			case 'update_menu_box_sidebar':
+				$this->updateMenuBoxSidebar();
+				break;
+			case 'question':
+				$this->updateQuestion();
+				break;
+			case 'config_web':
+				$this->insertConfigWeb();
+				break;
+			case 'drugstore':
+				$this->insertDrugstore();
+				break;
+			case 'video':
+				$this->insertVideo();
+				break;
+			case 'album':
+				$this->insertAlbum();
+				break;
+			case 'replace_domain':
+				$this->replaceDomain($requestData);
+				break;
+			}
 		}
-
-		if (in_array("replace_post_content", $requestData['choose'])) {
-			$this->replacePostContent();
-		}
-
-		if (in_array("user", $requestData['choose'])) {
-			$this->upgradeUser();
-		}
-
-		if (in_array("post_group", $requestData['choose'])) {
-			$this->updatePostGroup();
-		}
-
-		if (in_array("post", $requestData['choose'])) {
-			$this->updatePost();
-		}
-
-		if (in_array("question", $requestData['choose'])) {
-			$this->updateQuestion();
-		}
-
-		if (in_array("menu", $requestData['choose'])) {
-			$this->insertMenu();
-		}
-
-		if (in_array("update_menu_box_sidebar", $requestData['choose'])) {
-			$this->updateMenuBoxSidebar();
-		}
-
-		if (in_array("config_web", $requestData['choose'])) {
-			$this->insertConfigWeb();
-		}
-
-		if (in_array("drugstore", $requestData['choose'])) {
-			$this->insertDrugstore();
-		}
-		if (in_array("video", $requestData['choose'])) {
-			$this->insertVideo();
-		}
-
-		if (in_array("album", $requestData['choose'])) {
-			$this->insertAlbum();
-		}
-
 		return redirect()->route('upgrade.index');
-
 	}
 
+	public function insertMenu() {
+		$term = [
+			'name' => 'Main menu',
+			'slug' => 'main-menu',
+			'taxonomy' => 'menu',
+		];
+		$term = $this->termRepository->updateOrCreate($term);
+		$menus = DB::table('old_menu')->where('parentmenu', '0')->get();
+
+		foreach ($menus as $p) {
+			$newMenu = $this->insertNewMenu($p, $term);
+			$childs = DB::table('old_menu')->where('parentmenu', $p->id)->get();
+			foreach ($childs as $mc) {
+				$cmenu = $this->insertNewMenu($mc, $term);
+				$this->postRepository->update(['parent' => $newMenu->id], $cmenu->id);
+			}
+		}
+	}
+	public function upgradeUser() {
+		$users = DB::table('old_users')->get();
+		foreach ($users as $u) {
+			$tmp = [
+				'id' => $u->id,
+				'name' => $u->full_name,
+				'password' => $u->password,
+				'email' => $u->email,
+				'avatar' => "public/img/" . $u->avatar,
+			];
+			if (empty($this->userRepository->where('email', $u->email)->first())) {
+				$this->userRepository->updateOrcreate($tmp);
+			}
+		}
+	}
 	public function replaceDomain($data) {
 		$posts = $this->postRepository->all();
 		foreach ($posts as $p) {
@@ -142,7 +162,6 @@ class UpgradeController extends Controller {
 			$o->save();
 		}
 	}
-
 	public function insertAlbum() {
 		$albums = DB::table('old_album')->get();
 		foreach ($albums as $g) {
@@ -218,8 +237,6 @@ class UpgradeController extends Controller {
 			$this->termRepository->updateOrCreate($term);
 
 		}
-
-		//Remove all drugstore
 		$all = $this->postRepository->findWhere(['type' => 'drugstore']);
 		foreach ($all as $rd) {
 			$this->postRepository->destroy($rd->id);
@@ -301,24 +318,7 @@ class UpgradeController extends Controller {
 			}
 		}
 	}
-	public function insertMenu() {
-		$term = [
-			'name' => 'Main menu',
-			'slug' => 'main-menu',
-			'taxonomy' => 'menu',
-		];
-		$term = $this->termRepository->updateOrCreate($term);
-		$menus = DB::table('old_menu')->where('parentmenu', '0')->get();
 
-		foreach ($menus as $p) {
-			$newMenu = $this->insertNewMenu($p, $term);
-			$childs = DB::table('old_menu')->where('parentmenu', $p->id)->get();
-			foreach ($childs as $mc) {
-				$cmenu = $this->insertNewMenu($mc, $term);
-				$this->postRepository->update(['parent' => $newMenu->id], $cmenu->id);
-			}
-		}
-	}
 	public function updateQuestion() {
 		$term = [
 			'name' => 'Question group 1',
@@ -428,28 +428,7 @@ class UpgradeController extends Controller {
 			DB::table('terms')->insert($term);
 		}
 	}
-	public function upgradeUser() {
-		$users = DB::table('old_users')->get();
-		foreach ($users as $u) {
-			$tmp = [
-				'id' => $u->id,
-				'name' => $u->full_name,
-				'password' => $u->password,
-				'email' => $u->email,
-				'avatar' => "public/img/" . $u->avatar,
-			];
-			$this->userRepository->updateOrcreate($tmp);
-		}
 
-		$user = $this->userRepository->find(1);
-
-		$data = [
-			'name' => 'SuperAdmin',
-			'guard_name' => 'web',
-		];
-		$role = Role::insert($data);
-		$user->assignRole('SuperAdmin');
-	}
 	public function replacePostContent() {
 		$posts = $this->postRepository->all();
 		foreach ($posts as $p) {
@@ -483,6 +462,5 @@ class UpgradeController extends Controller {
 		$this->postRepository->insertMeta($menu, $meta);
 
 		return $menu;
-
 	}
 }
