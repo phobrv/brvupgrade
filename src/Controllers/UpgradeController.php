@@ -168,15 +168,15 @@ class UpgradeController extends Controller {
 					'title' => $p->title,
 					'slug' => $p->alias,
 					'content' => $p->content,
-					'thumb' => $p->image_thumb,
+					'thumb' => evn('APP_URL') . '/storage/photos/shares/thumbs/' . $p->image_thumb,
 					'excerpt' => $p->summary,
+					'created_at' => $p->created_at,
 					'type' => 'post',
 				];
 				$post = $this->postRepository->create($tmp);
 				if ($p->group_id) {
 					$post->terms()->sync($p->group_id);
 				}
-
 				if (!empty($p->doctor)) {
 					$meta['doctor'] = 0;
 					$doctor = DB::table('old_author')->find($p->doctor);
@@ -188,7 +188,6 @@ class UpgradeController extends Controller {
 
 					}
 				}
-
 				if (!empty($p->pharmacist)) {
 					$meta['pharmacist'] = 0;
 					$doctor = DB::table('old_author')->find($p->pharmacist);
@@ -197,11 +196,8 @@ class UpgradeController extends Controller {
 						if ($dp) {
 							$meta['pharmacist'] = $dp->id;
 						}
-
 					}
-
 				}
-
 				$meta['meta_title'] = ($p->meta_title) ? $p->meta_title : $p->title;
 				$meta['meta_description'] = $p->meta_description;
 				$meta['meta_keywords'] = $p->meta_keywords;
