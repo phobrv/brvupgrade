@@ -404,8 +404,8 @@ class UpgradeController extends Controller {
 				'user_id' => '1',
 				'title' => $p->title,
 				'slug' => $p->alias,
-				'excerpt' => $p->summary,
-				'content' => $p->answer,
+				'excerpt' => $p->question,
+				'content' => $p->anwser,
 				'type' => 'question',
 				'thumb' => env('APP_URL') . '/storage/photos/shares/thumbs/' . $p->image,
 			];
@@ -414,6 +414,7 @@ class UpgradeController extends Controller {
 			$meta['meta_title'] = $p->title;
 			$meta['meta_description'] = $p->meta_description;
 			$meta['meta_keywords'] = $p->meta_keywords;
+			$meta['summary'] = $p->summary;
 			$this->postRepository->insertMeta($ques, $meta);
 		}
 	}
