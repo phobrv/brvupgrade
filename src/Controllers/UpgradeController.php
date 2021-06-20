@@ -405,7 +405,7 @@ class UpgradeController extends Controller {
 				'title' => $p->title,
 				'slug' => $p->alias,
 				'excerpt' => $p->question,
-				'content' => $p->anwser,
+				'content' => $p->answer,
 				'type' => 'question',
 				'thumb' => env('APP_URL') . '/storage/photos/shares/thumbs/' . $p->image,
 			];
