@@ -403,18 +403,17 @@ class UpgradeController extends Controller {
 			$tmp = [
 				'user_id' => '1',
 				'title' => $p->title,
-				'content' => $p->question,
 				'slug' => $p->alias,
 				'excerpt' => $p->summary,
+				'content' => $p->answer,
 				'type' => 'question',
-				'thumb' => "public/img/" . $p->image,
+				'thumb' => env('APP_URL') . '/storage/photos/shares/thumbs/' . $p->image,
 			];
 			$ques = $this->postRepository->updateOrCreate($tmp);
 			$ques->terms()->sync($term->id);
+			$meta['meta_title'] = $p->title;
 			$meta['meta_description'] = $p->meta_description;
 			$meta['meta_keywords'] = $p->meta_keywords;
-			$meta['answer'] = $p->answer;
-			$meta['name'] = $p->name;
 			$this->postRepository->insertMeta($ques, $meta);
 		}
 	}
