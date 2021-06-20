@@ -388,7 +388,7 @@ class UpgradeController extends Controller {
 		$term = [
 			'name' => 'Question group 1',
 			'slug' => 'question-group1',
-			'taxonomy' => 'question',
+			'taxonomy' => config('term.taxonomy.questiongroup'),
 		];
 		$term = $this->termRepository->updateOrCreate($term);
 
