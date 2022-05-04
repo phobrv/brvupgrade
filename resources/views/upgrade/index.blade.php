@@ -1,12 +1,12 @@
-@extends('phobrv::layout.app')
+@extends('phobrv::adminlte3.layout')
 
 @section('header')
 <h1>Upgrade Data</h1>
 @endsection
 
 @section('content')
-<div class="box box-primary">
-	<div class="box-body">
+<div class="card">
+	<div class="card-body">
 		<form class="form-horizontal" action="{{route('upgrade.run')}}" method="post">
 			@csrf
 			<div class="row">
