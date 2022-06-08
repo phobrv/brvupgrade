@@ -1,4 +1,5 @@
 <?php
+use Illuminate\Support\Facades\Route;
 
 Route::middleware(['web', 'auth', 'auth:sanctum', 'lang', 'verified'])->namespace('Phobrv\BrvUpgrade\Controllers')->group(function () {
 	Route::middleware(['can:superuser'])->prefix('admin')->group(function () {
